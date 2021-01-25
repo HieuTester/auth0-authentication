@@ -1,192 +1,237 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth0 } from "@auth0/auth0-react";
-import { Table, Radio, Divider, Row, Button, Modal, Col, Form, Input, Space, message } from 'antd';
+import { Table, Radio, Divider, Row, Button, Modal, Col, Space, message } from 'antd';
 import 'antd/dist/antd.css';
+import { ExclamationCircleOutlined } from '@ant-design/icons'
+import AddEmployee from './AddEmployee';
 
 export const ExternalApi = () => {
-  const [selectionType, setSelectionType] = useState('checkbox');
-  const [listItems, setListItems] = useState([]);
-  const [isOpenModal, setIsOpenModal] = useState(false)
-  const { getAccessTokenSilently } = useAuth0();
-  const serverUrl = process.env.REACT_APP_SERVER_URL; 
+    const [selectionType, setSelectionType] = useState('checkbox');
+    const [listItems, setListItems] = useState([]);
+    const [employee, setEmployee] = useState({});
+    const [isOpenModal, setIsOpenModal] = useState(false)
+    const { getAccessTokenSilently } = useAuth0();
+    const serverUrl = process.env.REACT_APP_SERVER_URL;
 
-  const tailLayout = {
-      wrapperCol: { offset: 0, span: 24 },
-  };
 
-  const layout = {
-      labelCol: { span: 4 },
-      wrapperCol: { span: 20 },
-  };
+    useEffect(() => {
+        getEmployees();
+    }, [])
 
-  useEffect(() => {
-      getEmployees();
-  }, [])
+    const getEmployees = async () => {
+        try {
 
-  const getEmployees = async () => {
-    try {
-    
-      const token = await getAccessTokenSilently();
-      const response = await fetch(
-        `${serverUrl}/api/employees`,
-        {
-          headers: {
-            authorization: `Bearer ${token}`,
-          },
+            const token = await getAccessTokenSilently();
+            const response = await fetch(
+                `${serverUrl}/employees`,
+                {
+                    headers: {
+                        authorization: `Bearer ${token}`,
+                    },
+                }
+            )
+            const responseData = await response.json();
+            console.log(responseData)
+            setListItems(responseData)
+        } catch (error) {
+            message.error(error.message)
         }
-      )
-      const responseData = await response.json();
-      setListItems(responseData.data.employees)
-      console.log(listItems)
-    } catch (error) {
-      message.error(error.message)
+    };
+
+    function getEmployeeById(Id) {
+        const requestUrl = `${serverUrl}/employees/`;
+        fetch(requestUrl + Id, {
+            method: 'GET',
+        })
+            .then(res => res.json())
+            .then(response => {
+                // console.log('Success:', JSON.stringify(response))
+                setEmployee(response)
+            })
+            .catch(error => {
+                console.error('Error:', error)
+                message.error(error)
+            })
     }
-  };
+
+    const addNewEmployee = async (newEmployee) => {
+        try {
+
+            const token = await getAccessTokenSilently();
+            const response = await fetch(
+                `${serverUrl}/employees`,
+                {
+                    method: "POST",
+                    body: JSON.stringify(newEmployee),
+                    headers: {
+                        authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                }
+            )
+            const responseData = await response.json();
+            console.log(responseData)
+            message.success("Employee added successfully!")
+            getEmployees()
+        } catch (error) {
+            message.error(error.message)
+        }
+    };
+
+    function editEmployee(employee) {
+        const requestUrl = `${serverUrl}/employees/`
+        fetch(requestUrl + employee.id, {
+            method: 'PUT',
+            body: JSON.stringify(employee),
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(res => res.json())
+            .then(response => {
+                console.log('Success:', JSON.stringify(response))
+                message.success("Employee updated successfully!")
+                getEmployees()
+                setEmployee({})
+            })
+            .catch(error => {
+                console.error('Error:', error)
+                message.error(error)
+            })
+    }
+
+    function deleteEmployee(Id) {
+        const requestUrl = `${serverUrl}/employees/`
+        fetch(requestUrl + Id, {
+            method: 'DELETE',
+        })
+            .then(res => res.json())
+            .then(response => {
+                console.log('Success:', JSON.stringify(response))
+                message.success("Note has been deleted!")
+                getEmployees()
+            })
+            .catch(error => {
+                console.error('Error:', error)
+                message.error(error)
+            })
+    }
+
+    function onEditEmployeeClick(Id) {
+        getEmployeeById(Id)
+        setIsOpenModal(true)
+    }
+
+    function onDeleEmployeeClick(Id) {
+        Modal.confirm({
+            title: 'Delete Employee!',
+            icon: <ExclamationCircleOutlined />,
+            content: "Are you sure you want to delete this employee?",
+            onOk() {
+              console.log('OK');
+              deleteEmployee(Id);
+            },
+            onCancel() {
+              console.log('Cancel');
+            },
+        })
+    }
 
 
-  const columns = [
-      {
-          title: 'Name',
-          dataIndex: 'name',
-          render: (text) => <a>{text}</a>,
-      },
-      {
-          title: 'Age',
-          dataIndex: 'age',
-      },
-      {
-        title: 'Email',
-        dataIndex: 'email',
+    const columns = [
+        {
+            title: 'Name',
+            dataIndex: 'name',
+        },
+        {
+            title: 'Age',
+            dataIndex: 'age',
+        },
+        {
+            title: 'Email',
+            dataIndex: 'email',
         },
         {
             title: 'Phone',
             dataIndex: 'phone',
-            width: 300,
+            textWrap: 'word-break',
+            
         },
-      {
-          title: 'Address',
-          dataIndex: 'address',
-      },
-      {
-          title: 'Action',
-          key: 'action',
-          render: (text, record) => (
-            <Space size="middle">
-              <Button style={{}}type="text" >Edit</Button>
-              <Button type="text" danger  >Delete</Button>
-            </Space>
-          ),
+        {
+            title: 'Address',
+            dataIndex: 'address',
+            textWrap: 'word-break',
         },
-  ];
+        {
+            title: 'Action',
+            key: 'action',
+            render: (text, record) => (
+                <Space size="middle">
+                    <Button style={{}} type="text" onClick={() => onEditEmployeeClick(record.id)}>Edit</Button>
+                    <Button type="text" danger  onClick={() => onDeleEmployeeClick(record.id)} >Delete</Button>
+                </Space>
+            ),
+        },
+    ];
 
-  const rowSelection = {
-      onChange: (selectedRowKeys, selectedRows) => {
-          console.log(`selectedRowKeys: ${selectedRowKeys}`, 'selectedRows: ', selectedRows);
-      },
-      getCheckboxProps: (record) => ({
-          disabled: record.name === 'Disabled User',
-          // Column configuration not to be checked
-          name: record.name,
-      }),
-  };
+    const rowSelection = {
+        onChange: (selectedRowKeys, selectedRows) => {
+            console.log(`selectedRowKeys: ${selectedRowKeys}`, 'selectedRows: ', selectedRows);
+        },
+        getCheckboxProps: (record) => ({
+            disabled: record.name === 'Disabled User',
+            // Column configuration not to be checked
+            name: record.name,
+        }),
+    };
 
-  const openModal = () => {
-      setIsOpenModal(true);
-  };
-  const closeModal = () => {
-      setIsOpenModal(false);
-  };
+    const openModal = () => {
+        setIsOpenModal(true);
+    };
+    const closeModal = () => {
+        setIsOpenModal(false);
+        setEmployee({});
+    };
 
-  const handleOk = () => {
-      setIsOpenModal(false);
-  };
-  const handleCancel = () => {
-      setIsOpenModal(false);
-  };
+    return (
 
-  return (
-
-      <div>
-          <Row>
-              <Button type="primary" onClick={openModal}>
-                  Add
+        <div>
+            <Row>
+                <Button type="primary" onClick={openModal}>
+                    Add
               </Button>
-              <Modal
-                  title="Add new employee"
-                  visible={isOpenModal}
-                  footer={null}
-                  onCancel={closeModal}
-              >
-                  <Form {...layout}
-                  className="form"
-                      name="basic"
-                      initialValues={{
-                          remember: true,
-                      }}
-                  // onFinish={onFinish}
-                  // onFinishFailed={onFinishFailed}
-                  >
-                      <Form.Item {...tailLayout}
-                          label="Name"
-                          name="name"
-                          rules={[
-                              {
-                                  required: true,
-                                  message: 'Please input your employee\'s name!',
-                              },
-                          ]}
-                      >
-                          <Input />
-                      </Form.Item>
+                <AddEmployee
+                    employee={employee}
+                    closeModal={closeModal}
+                    addNewEmployee={addNewEmployee}
+                    editEmployee={editEmployee}
+                    isOpenModal={isOpenModal}
+                />
+            </Row>
+            <Row>
+                <Radio.Group
+                    onChange={({ target: { value } }) => {
+                        setSelectionType(value);
+                    }}
+                    value={selectionType}
+                >
+                </Radio.Group>
 
-                      <Form.Item {...tailLayout}
-                          label="Age"
-                          name="age"
-                          rules={[
-                              {
-                                  required: true,
-                                  message: 'Please input Employee\'s age!',
-                              },
-                          ]}
-                      >
-                          <Input />
-                      </Form.Item>
+                <Divider />
+                <Col span={18} offset={3}>
+                    <Table
+                        rowSelection={{
+                            type: selectionType,
+                            ...rowSelection,
+                        }}
+                        columns={columns}
+                        dataSource={listItems}
+                        rowKey="id"
+                    />
+                </Col>
+            </Row>
 
-
-                      <Form.Item {...tailLayout}>
-                          <Col span={24} style={{ textAlign: 'right' }}>
-                              <Button type="primary" htmlType="submit">
-                                  Submit
-                              </Button>
-                          </Col>
-                      </Form.Item>
-                  </Form>
-
-              </Modal>
-          </Row>
-          <Row>
-              <Radio.Group
-                  onChange={({ target: { value } }) => {
-                      setSelectionType(value);
-                  }}
-                  value={selectionType}
-              >
-              </Radio.Group>
-
-              <Divider />
-              <Col span={18} offset={3}>
-                  <Table
-                      rowSelection={{
-                          type: selectionType,
-                          ...rowSelection,
-                      }}
-                      columns={columns}
-                      dataSource={listItems}
-                  />
-              </Col>
-          </Row>
-
-      </div>
-  );
+        </div>
+    );
 }
 export default ExternalApi;
