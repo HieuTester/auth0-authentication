@@ -71,8 +71,8 @@ export const ExternalApi = () => {
             )
             const responseData = await response.json();
             console.log(responseData)
-            message.success("Employee added successfully!")
             getEmployees()
+            message.success("Employee added successfully!")
         } catch (error) {
             message.error(error.message)
         }
@@ -90,9 +90,9 @@ export const ExternalApi = () => {
             .then(res => res.json())
             .then(response => {
                 console.log('Success:', JSON.stringify(response))
-                message.success("Employee updated successfully!")
                 getEmployees()
                 setEmployee({})
+                message.success("Employee updated successfully!")
             })
             .catch(error => {
                 console.error('Error:', error)
@@ -108,8 +108,8 @@ export const ExternalApi = () => {
             .then(res => res.json())
             .then(response => {
                 console.log('Success:', JSON.stringify(response))
-                message.success("Note has been deleted!")
                 getEmployees()
+                message.success("Note has been deleted!")
             })
             .catch(error => {
                 console.error('Error:', error)
